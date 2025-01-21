@@ -1,6 +1,0 @@
-telethon
-transformers
-datasets
-torch
-scikit-learn
-numpy

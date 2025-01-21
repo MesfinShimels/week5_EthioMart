@@ -1,26 +1,65 @@
-import json
+# scripts/labeling.py
 import os
 
-def create_conll(input_file, output_file):
-    """Converts preprocessed messages into CoNLL format."""
-    with open(input_file, "r", encoding="utf-8") as f:
-        messages = json.load(f)
-    
-    with open(output_file, "w", encoding="utf-8") as f:
-        for message in messages:
-            tokens = message["text"].split()
-            for token in tokens:
-                # Placeholder labeling
-                label = "O"  # Default to "Outside"
-                f.write(f"{token}\t{label}\n")
-            f.write("\n")  # Separate sentences
+# Directories for preprocessed and labeled data
+PREPROCESSED_DATA_DIR = os.path.join("data", "preprocessed")
+LABELED_DATA_DIR = os.path.join("data", "labeled")
+os.makedirs(LABELED_DATA_DIR, exist_ok=True)
+
+ENTITY_TAGS = ["B-Product", "I-Product", "B-LOC", "I-LOC", "B-PRICE", "I-PRICE", "O"]
+
+def display_sentence(sentence):
+    """
+    Display a sentence with each token for labeling.
+    """
+    print("\nSentence to Label:")
+    print(" ".join(sentence))
+
+def label_sentence(sentence):
+    """
+    Allow user to label each token in a sentence.
+    """
+    labeled_tokens = []
+    for token in sentence:
+        print(f"\nToken: {token}")
+        print(f"Select entity tag: {', '.join(ENTITY_TAGS)}")
+        while True:
+            tag = input("Enter tag: ").strip()
+            if tag in ENTITY_TAGS:
+                labeled_tokens.append((token, tag))
+                break
+            else:
+                print("Invalid tag. Please choose from the provided list.")
+    return labeled_tokens
+
+def save_labeled_data(labeled_sentences, filename):
+    """
+    Save labeled data in CoNLL format.
+    """
+    filepath = os.path.join(LABELED_DATA_DIR, filename)
+    with open(filepath, "w", encoding="utf-8") as f:
+        for sentence in labeled_sentences:
+            for token, tag in sentence:
+                f.write(f"{token} {tag}\n")
+            f.write("\n")
+    print(f"Labeled data saved: {filepath}")
+
+def label_data():
+    """
+    Load preprocessed data, label it, and save in CoNLL format.
+    """
+    preprocessed_files = [f for f in os.listdir(PREPROCESSED_DATA_DIR) if f.endswith(".txt")]
+    for file in preprocessed_files:
+        filepath = os.path.join(PREPROCESSED_DATA_DIR, file)
+        labeled_sentences = []
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line in f:
+                sentence = line.strip().split()
+                if sentence:
+                    display_sentence(sentence)
+                    labeled_tokens = label_sentence(sentence)
+                    labeled_sentences.append(labeled_tokens)
+        save_labeled_data(labeled_sentences, f"labeled_{file}")
 
 if __name__ == "__main__":
-    INPUT_DIR = "data/preprocessed/"
-    OUTPUT_DIR = "data/labeled/"
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    for file in os.listdir(INPUT_DIR):
-        if file.startswith("preprocessed_") and file.endswith(".json"):
-            input_path = os.path.join(INPUT_DIR, file)
-            output_path = os.path.join(OUTPUT_DIR, f"{file.replace('preprocessed_', '').replace('.json', '.conll')}")
-            create_conll(input_path, output_path)
+    label_data()
